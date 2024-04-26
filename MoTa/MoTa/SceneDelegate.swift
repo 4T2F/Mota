@@ -16,17 +16,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
+        
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
-        let userRouter = UserRouter.start()
+        window = UIWindow(frame: UIScreen.main.bounds) // SceneDelegate의 프로퍼티에 설정
         
-        let initialVC = userRouter.entry
-
-        let window = UIWindow(windowScene: windowScene) // SceneDelegate의 프로퍼티에 설정
+        let viewController = VideoEditingViewController() // 처음 보일 view controller
         
-        window.rootViewController = initialVC     // 위에서 만든 view controller를 첫 화면으로 띄우기
-        self.window = window
-        window.makeKeyAndVisible()     // 화면에 보이게끔
+        window?.rootViewController = viewController     // 위에서 만든 view controller를 첫 화면으로 띄우기
+        
+        window?.makeKeyAndVisible()     // 화면에 보이게끔
+        window?.windowScene = windowScene
+        
+//        guard let windowScene = (scene as? UIWindowScene) else { return }
+//        
+//        let userRouter = UserRouter.start()
+//        
+//        let initialVC = userRouter.entry
+//
+//        let window = UIWindow(windowScene: windowScene) // SceneDelegate의 프로퍼티에 설정
+//        
+//        window.rootViewController = initialVC     // 위에서 만든 view controller를 첫 화면으로 띄우기
+//        self.window = window
+//        window.makeKeyAndVisible()     // 화면에 보이게끔
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
