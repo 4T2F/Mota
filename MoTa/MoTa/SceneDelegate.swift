@@ -19,14 +19,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
-        window = UIWindow(frame: UIScreen.main.bounds) // SceneDelegate의 프로퍼티에 설정
+        let router = VDRouter.start()
         
-        let viewController = VideoEditingViewController() // 처음 보일 view controller
+        let initialVC = router.entry
         
-        window?.rootViewController = viewController     // 위에서 만든 view controller를 첫 화면으로 띄우기
         
-        window?.makeKeyAndVisible()     // 화면에 보이게끔
-        window?.windowScene = windowScene
+        let window = UIWindow(frame: UIScreen.main.bounds) // SceneDelegate의 프로퍼티에 설정
+        
+        window.rootViewController = initialVC     // 위에서 만든 view controller를 첫 화면으로 띄우기
+        self.window = window
+        window.makeKeyAndVisible()     // 화면에 보이게끔
         
 //        guard let windowScene = (scene as? UIWindowScene) else { return }
 //        
