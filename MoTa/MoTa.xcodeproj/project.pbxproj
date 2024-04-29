@@ -46,6 +46,7 @@
 		418AD4D92BDA349600A00F73 /* Presenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418AD4D82BDA349600A00F73 /* Presenter.swift */; };
 		418AD4DB2BDA349E00A00F73 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418AD4DA2BDA349E00A00F73 /* Entity.swift */; };
 		418AD4DD2BDA34A700A00F73 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418AD4DC2BDA34A700A00F73 /* Router.swift */; };
+		735511AC2BDF70DF00E7EE4D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735511AB2BDF70DF00E7EE4D /* ViewController.swift */; };
 		737FB2E72BDB9EF40015167C /* sample_video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 4183F09A2BDB9294006387EF /* sample_video.mp4 */; };
 		737FB2E92BDBB0600015167C /* hi.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 737FB2E82BDBB0600015167C /* hi.mp4 */; };
 /* End PBXBuildFile section */
@@ -64,6 +65,7 @@
 		418AD4D82BDA349600A00F73 /* Presenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presenter.swift; sourceTree = "<group>"; };
 		418AD4DA2BDA349E00A00F73 /* Entity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
 		418AD4DC2BDA34A700A00F73 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
+		735511AB2BDF70DF00E7EE4D /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		737FB2E82BDBB0600015167C /* hi.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = hi.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -147,6 +149,7 @@
 				418AD4DA2BDA349E00A00F73 /* Entity.swift */,
 				418AD4DC2BDA34A700A00F73 /* Router.swift */,
 				4183F0982BDB8EA9006387EF /* VideoEditorView.swift */,
+				735511AB2BDF70DF00E7EE4D /* ViewController.swift */,
 			);
 			path = VIPER;
 			sourceTree = "<group>";
@@ -266,6 +269,7 @@
 				418AD4D72BDA348C00A00F73 /* Interactor.swift in Sources */,
 				418AD4822BD8FB7B00A00F73 /* AppDelegate.swift in Sources */,
 				418AD4842BD8FB7B00A00F73 /* SceneDelegate.swift in Sources */,
+				735511AC2BDF70DF00E7EE4D /* ViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
