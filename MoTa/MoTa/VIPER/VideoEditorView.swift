@@ -12,7 +12,6 @@ import AVFoundation
 import Foundation
 import UIKit
 
-
 class VideoPlayerView: UIView {
     private lazy var videoBackgroundView: UIView = {
         let view = UIView()
@@ -21,7 +20,10 @@ class VideoPlayerView: UIView {
         return view
     }()
     
-    let playerLayer: AVPlayerLayer
+    var videoTop: Constraint?
+    var videobottom: Constraint?
+    
+    var playerLayer: AVPlayerLayer
     
     init(player: AVPlayer) {
         self.playerLayer = AVPlayerLayer(player: player)
@@ -52,7 +54,7 @@ class VideoPlayerView: UIView {
 protocol VideoEditingView {
     var presenter: VideoEditingPresenter? { get set }
     
-    func displayVideoPlayer(with player: AVPlayer) // 비디오 플레이어를 화면에 표시하는 메서드
+    func displayVideoPlayer(with player: AVPlayer, time: TimeInterval?) // 비디오 플레이어를 화면에 표시하는 메서드
 }
 
 // View 구현 클래스
@@ -68,16 +70,34 @@ class VideoEditingViewController: UIViewController, VideoEditingView {
     }
     
     // 비디오 플레이어를 화면에 표시하는 메서드
-    func displayVideoPlayer(with player: AVPlayer) {
+    func displayVideoPlayer(with player: AVPlayer, time: TimeInterval?) {
         self.videoPlayerView = VideoPlayerView(player: player)
         self.videoPlayerView?.layer.cornerRadius = 20
         
         if let videoPlayerView = self.videoPlayerView {
             self.view.addSubview(videoPlayerView)
             videoPlayerView.snp.makeConstraints { make in
-                make.leading.trailing.top.bottom.equalToSuperview()
+                make.leading.trailing.equalToSuperview()
+                self.videoPlayerView!.videoTop = make.top.equalTo(self.view.snp.top).constraint
+                self.videoPlayerView!.videobottom = make.bottom.equalTo(self.view.snp.bottom).constraint
             }
             videoPlayerView.playerLayer.player?.play() // 비디오 재생
+
+            DispatchQueue.main.async {
+                // 첫 번째 동영상의 길이를 가져옵니다.
+                guard let asset1Duration = player.currentItem?.duration.seconds else {
+                    print("Error: Failed to get the duration of the first video.")
+                    return
+                }
+                
+                print(asset1Duration)
+                DispatchQueue.main.asyncAfter(deadline: .now() + asset1Duration) {
+                    print("First video ended")
+                    
+                    self.videoPlayerView!.videoTop?.update(offset: 300)
+                    self.videoPlayerView!.videobottom?.update(offset: -300)
+                }
+            }
         }
     }
 }
@@ -89,7 +109,7 @@ protocol VideoEditingPresenter {
     var view: VideoEditingView? { get set }
     
     func viewDidLoad() // 뷰가 로드될 때 호출되는 메서드
-    func presentVideoPlayer(with player: AVPlayer)
+    func presentVideoPlayer(with player: AVPlayer, time: TimeInterval?)
 }
 
 // Presenter 구현 클래스
@@ -104,8 +124,8 @@ class VideoEditingPresenterImpl: VideoEditingPresenter {
     }
     
     // 비디오 플레이어를 화면에 표시하는 메서드
-    func presentVideoPlayer(with player: AVPlayer) {
-        view?.displayVideoPlayer(with: player) // 뷰에 비디오 플레이어 전달
+    func presentVideoPlayer(with player: AVPlayer, time: TimeInterval?) {
+        view?.displayVideoPlayer(with: player, time: time) // 뷰에 비디오 플레이어 전달
     }
 }
 
@@ -122,82 +142,86 @@ class VideoEditingInteractorImpl: VideoEditingInteractor {
     
     func startVideoEditing() {
         // 비디오 파일 경로
-        let videoURL1 = URL(fileURLWithPath: Bundle.main.path(forResource: "hi", ofType: "mp4")!)
+        let videoURL1 = URL(fileURLWithPath: Bundle.main.path(forResource: "sample_video", ofType: "mp4")!)
         let asset1 = AVAsset(url: videoURL1)
-        let videoURL2 = URL(fileURLWithPath: Bundle.main.path(forResource: "sample_video", ofType: "mp4")!)
+        
+        let startTime1 = CMTime(seconds: 0, preferredTimescale: 600) // 시작 시간
+        let endTime1 = CMTime(seconds: .infinity, preferredTimescale: 600) // 종료 시간
+        let timeRange1 = CMTimeRange(start: startTime1, end: endTime1) // 시간 범위 설정
+        
+        // 비디오 파일 경로
+        let videoURL2 = URL(fileURLWithPath: Bundle.main.path(forResource: "hi", ofType: "mp4")!)
         let asset2 = AVAsset(url: videoURL2)
         
         // 비디오 합성 객체 생성
         let composition = AVMutableComposition()
         
         // 첫 번째 비디오 트랙과 오디오 트랙 추가
-        let videoTrackComposition1 = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let audioTrackComposition1 = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
-        
-        // 두 번째 비디오 트랙과 오디오 트랙 추가
-        let videoTrackComposition2 = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
-        let audioTrackComposition2 = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+        let videoTrackComposition = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+        let audioTrackComposition = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
         
         do {
             // 첫 번째 비디오와 오디오 자르기
-            try videoTrackComposition1?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration), of: asset1.tracks(withMediaType: .video)[0], at: .zero)
+            try videoTrackComposition?.insertTimeRange(timeRange1, of: asset1.tracks(withMediaType: .video)[0], at: .zero)
             
             if let audioTrack = asset1.tracks(withMediaType: .audio).first {
-                try audioTrackComposition1?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration), of: audioTrack, at: .zero)
+                try audioTrackComposition?.insertTimeRange(timeRange1, of: audioTrack, at: .zero)
             } else {
-                audioTrackComposition1?.insertEmptyTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration))
+                audioTrackComposition?.insertEmptyTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration))
             }
             
             // 두 번째 비디오와 오디오 자르기
-            try videoTrackComposition2?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration), of: asset2.tracks(withMediaType: .video)[0], at: .zero)
+            try videoTrackComposition?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration), of: asset2.tracks(withMediaType: .video)[0], at: .zero)
+            
             if let audioTrack = asset2.tracks(withMediaType: .audio).first {
-                try audioTrackComposition2?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration), of: audioTrack, at: .zero)
+                try audioTrackComposition?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration), of: audioTrack, at: .zero)
             } else {
-                audioTrackComposition2?.insertEmptyTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration))
+                audioTrackComposition?.insertEmptyTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration))
             }
         } catch {
             print("Error: \(error.localizedDescription)")
             return
         }
         
-        // 영상 합성 설정
-        let mainVideoInstruction = AVMutableVideoCompositionInstruction()
-        mainVideoInstruction.timeRange = CMTimeRangeMake(start: .zero, duration: CMTimeAdd(asset1.duration, asset2.duration))
-        
-        // 첫 번째 비디오 트랙 지시 사항 설정
-        let firstInstruction = self.videoCompositionInstruction(
-            videoTrackComposition1!,
-            asset: asset1
-        )
-        firstInstruction.setOpacity(1.0, at: .zero) // 첫 번째 동영상은 시작부터 투명하지 않도록 설정
-        firstInstruction.setOpacity(0.0, at: asset1.duration)
-        
-        
-        // 두 번째 비디오 트랙 지시 사항 설정
-        let secondInstruction = self.videoCompositionInstruction(
-            videoTrackComposition2!,
-            asset: asset2
-        )
-        secondInstruction.setOpacity(0.0, at: .zero) // 두 번째 동영상은 시작부터 투명하도록 설정
-        secondInstruction.setOpacity(1.0, at: asset1.duration) // 첫 번째 동영상이 끝난 시점부터 두 번째 동영상이 나오도록 설정
-        
-        
-        
-        // 지시 사항 추가
-        mainVideoInstruction.layerInstructions = [firstInstruction, secondInstruction]
-        let mainComposition = AVMutableVideoComposition()
-        mainComposition.instructions = [mainVideoInstruction]
-        mainComposition.renderSize = UIScreen.main.bounds.size
-        mainComposition.frameDuration = CMTimeMake(value: 1, timescale: 30)
-        
+        /*
+         // 영상 합성 설정
+         let mainVideoInstruction = AVMutableVideoCompositionInstruction()
+         mainVideoInstruction.timeRange = CMTimeRangeMake(start: .zero, duration: CMTimeAdd(asset1.duration, asset2.duration))
+         
+         // 첫 번째 비디오 트랙 지시 사항 설정
+         let firstInstruction = self.videoCompositionInstruction(
+         videoTrackComposition1!,
+         asset: asset1
+         )
+         firstInstruction.setOpacity(1.0, at: .zero) // 첫 번째 동영상은 시작부터 투명하지 않도록 설정
+         firstInstruction.setOpacity(0.0, at: asset1.duration)
+         
+         
+         // 두 번째 비디오 트랙 지시 사항 설정
+         let secondInstruction = self.videoCompositionInstruction(
+         videoTrackComposition2!,
+         asset: asset2
+         )
+         secondInstruction.setOpacity(0.0, at: .zero) // 두 번째 동영상은 시작부터 투명하도록 설정
+         secondInstruction.setOpacity(1.0, at: asset1.duration) // 첫 번째 동영상이 끝난 시점부터 두 번째 동영상이 나오도록 설정
+         
+         
+         // 지시 사항 추가
+         mainVideoInstruction.layerInstructions = [firstInstruction, secondInstruction]
+         let mainComposition = AVMutableVideoComposition()
+         mainComposition.instructions = [mainVideoInstruction]
+         mainComposition.renderSize = UIScreen.main.bounds.size
+         mainComposition.frameDuration = CMTimeMake(value: 1, timescale: 30)
+         */
         // 플레이어 아이템 생성
         let playerItem = AVPlayerItem(asset: composition)
-        playerItem.videoComposition = mainComposition
+        //playerItem.videoComposition = mainComposition
         // 플레이어 생성
         let player = AVPlayer(playerItem: playerItem)
         
+        print(playerItem.asset.tracks)
         
-        presenter?.presentVideoPlayer(with: player) // 비디오 플레이어 프레젠트
+        presenter?.presentVideoPlayer(with: player, time: CMTimeGetSeconds(timeRange1.duration)) // 비디오 플레이어 프레젠트
     }
 }
 
