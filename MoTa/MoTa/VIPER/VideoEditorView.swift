@@ -16,7 +16,7 @@ import UIKit
 class VideoPlayerView: UIView {
     private lazy var videoBackgroundView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray
+        view.backgroundColor = .systemGray4
         self.addSubview(view)
         return view
     }()
@@ -59,41 +59,24 @@ protocol VideoEditingView {
 class VideoEditingViewController: UIViewController, VideoEditingView {
     var presenter: VideoEditingPresenter? // 프레젠터 객체
     var videoPlayerView: VideoPlayerView?
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = .systemBlue
-        print("하이")
-        presenter?.viewDidLoad(trackNumber: 1) // 뷰가 로드될 때 프레젠터에게 이벤트 전달
+        self.view.backgroundColor = .systemBackground
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10){
-            self.presenter?.viewDidLoad(trackNumber: 2)
-        }
+        presenter?.viewDidLoad() // 뷰가 로드될 때 프레젠터에게 이벤트 전달
     }
     
-//    func presentVideoPlayer(with player: AVPlayer) {
-//        let playerController = AVPlayerViewController()
-//        playerController.player = player
-//        print("qqqqqq")
-//        // 
-//        
-//        player.play() // 비디오 재생
-//        print("qqqqqq")
-//    }
-//    
     // 비디오 플레이어를 화면에 표시하는 메서드
     func displayVideoPlayer(with player: AVPlayer) {
         self.videoPlayerView = VideoPlayerView(player: player)
+        self.videoPlayerView?.layer.cornerRadius = 20
         
         if let videoPlayerView = self.videoPlayerView {
             self.view.addSubview(videoPlayerView)
             videoPlayerView.snp.makeConstraints { make in
-                make.leading.equalTo(self.view.safeAreaLayoutGuide.snp.leading).offset(50)
-                make.trailing.equalTo(self.view.safeAreaLayoutGuide.snp.trailing).offset(-50)
-                make.top.equalTo(self.view.safeAreaLayoutGuide.snp.top).offset(250)
-                make.bottom.equalTo(self.view.safeAreaLayoutGuide.snp.bottom).offset(-250)
+                make.leading.trailing.top.bottom.equalToSuperview()
             }
-            print("qqqqqq")
             videoPlayerView.playerLayer.player?.play() // 비디오 재생
         }
     }
@@ -105,7 +88,7 @@ protocol VideoEditingPresenter {
     var interactor: VideoEditingInteractor? { get set }
     var view: VideoEditingView? { get set }
     
-    func viewDidLoad(trackNumber: Int) // 뷰가 로드될 때 호출되는 메서드
+    func viewDidLoad() // 뷰가 로드될 때 호출되는 메서드
     func presentVideoPlayer(with player: AVPlayer)
 }
 
@@ -115,15 +98,13 @@ class VideoEditingPresenterImpl: VideoEditingPresenter {
     
     var view: VideoEditingView?// 뷰 객체
     var interactor: VideoEditingInteractor? // 인터렉터 객체
-
-    func viewDidLoad(trackNumber: Int) {
-        print("dongho")
-        interactor?.startVideoEditing(trackNumber: trackNumber) // 비디오 편집 시작 이벤트 전달
+    
+    func viewDidLoad() {
+        interactor?.startVideoEditing() // 비디오 편집 시작 이벤트 전달
     }
     
     // 비디오 플레이어를 화면에 표시하는 메서드
     func presentVideoPlayer(with player: AVPlayer) {
-        print("jooyoung")
         view?.displayVideoPlayer(with: player) // 뷰에 비디오 플레이어 전달
     }
 }
@@ -132,56 +113,89 @@ class VideoEditingPresenterImpl: VideoEditingPresenter {
 protocol VideoEditingInteractor {
     var presenter: VideoEditingPresenter? { get set }
     
-    func startVideoEditing(trackNumber: Int) // 비디오 편집 시작 메서드
+    func startVideoEditing() // 비디오 편집 시작 메서드
 }
 
 // Interactor 구현 클래스
 class VideoEditingInteractorImpl: VideoEditingInteractor {
     var presenter: VideoEditingPresenter? // 프레젠터 객체
     
-    func startVideoEditing(trackNumber: Int) {
-        var videoURL: URL?
-        var startTime: CMTime?
-        var endTime: CMTime?
+    func startVideoEditing() {
+        // 비디오 파일 경로
+        let videoURL1 = URL(fileURLWithPath: Bundle.main.path(forResource: "hi", ofType: "mp4")!)
+        let asset1 = AVAsset(url: videoURL1)
+        let videoURL2 = URL(fileURLWithPath: Bundle.main.path(forResource: "sample_video", ofType: "mp4")!)
+        let asset2 = AVAsset(url: videoURL2)
         
-        // 비디오 자르기 로직 수행
-        switch trackNumber {
-        case 1:
-            videoURL = URL(fileURLWithPath: Bundle.main.path(forResource: "sample_video", ofType: "mp4")!) // 비디오 파일 경로
-            startTime = CMTime(seconds: 0, preferredTimescale: 600) // 시작 시간
-            endTime = CMTime(seconds: 10, preferredTimescale: 600) // 종료 시간
-        case 2:
-            videoURL = URL(fileURLWithPath: Bundle.main.path(forResource: "hi", ofType: "mp4")!) // 비디오 파일 경로
-            startTime = CMTime(seconds: 0, preferredTimescale: 600) // 시작 시간
-            endTime = CMTime(seconds: 5, preferredTimescale: 600) // 종료 시간
-        default:
-            break
-        }
+        // 비디오 합성 객체 생성
+        let composition = AVMutableComposition()
         
-        let timeRange = CMTimeRange(start: startTime!, end: endTime!) // 시간 범위 설정
-        let asset = AVAsset(url: videoURL!) // 비디오 asset
+        // 첫 번째 비디오 트랙과 오디오 트랙 추가
+        let videoTrackComposition1 = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+        let audioTrackComposition1 = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
         
-        let composition = AVMutableComposition() // 비디오 합성 객체 생성
-        let videoTrackComposition = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) // 비디오 트랙
-        let audioTrackComposition = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+        // 두 번째 비디오 트랙과 오디오 트랙 추가
+        let videoTrackComposition2 = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+        let audioTrackComposition2 = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
         
         do {
-            if let videoTrack = asset.tracks(withMediaType: .video).first {
-                try videoTrackComposition?.insertTimeRange(timeRange, of: videoTrack, at: .zero) // 비디오 자르기
+            // 첫 번째 비디오와 오디오 자르기
+            try videoTrackComposition1?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration), of: asset1.tracks(withMediaType: .video)[0], at: .zero)
+            
+            if let audioTrack = asset1.tracks(withMediaType: .audio).first {
+                try audioTrackComposition1?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration), of: audioTrack, at: .zero)
+            } else {
+                audioTrackComposition1?.insertEmptyTimeRange(CMTimeRangeMake(start: .zero, duration: asset1.duration))
             }
             
-            if let audioTrack = asset.tracks(withMediaType: .audio).first {
-                try audioTrackComposition?.insertTimeRange(timeRange, of: audioTrack, at: .zero) // 오디오 자르기
+            // 두 번째 비디오와 오디오 자르기
+            try videoTrackComposition2?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration), of: asset2.tracks(withMediaType: .video)[0], at: .zero)
+            if let audioTrack = asset2.tracks(withMediaType: .audio).first {
+                try audioTrackComposition2?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration), of: audioTrack, at: .zero)
+            } else {
+                audioTrackComposition2?.insertEmptyTimeRange(CMTimeRangeMake(start: .zero, duration: asset2.duration))
             }
         } catch {
             print("Error: \(error.localizedDescription)")
-            print("123")
             return
         }
         
-        //MARK: - 여기 asset이면 전체, composition면 자른거 근데 자른거 안됨
-        let playerItem = AVPlayerItem(asset: composition) // 플레이어 아이템 생성
-        let player = AVPlayer(playerItem: playerItem) // 플레이어 생성
+        // 영상 합성 설정
+        let mainVideoInstruction = AVMutableVideoCompositionInstruction()
+        mainVideoInstruction.timeRange = CMTimeRangeMake(start: .zero, duration: CMTimeAdd(asset1.duration, asset2.duration))
+        
+        // 첫 번째 비디오 트랙 지시 사항 설정
+        let firstInstruction = self.videoCompositionInstruction(
+            videoTrackComposition1!,
+            asset: asset1
+        )
+        firstInstruction.setOpacity(1.0, at: .zero) // 첫 번째 동영상은 시작부터 투명하지 않도록 설정
+        firstInstruction.setOpacity(0.0, at: asset1.duration)
+        
+        
+        // 두 번째 비디오 트랙 지시 사항 설정
+        let secondInstruction = self.videoCompositionInstruction(
+            videoTrackComposition2!,
+            asset: asset2
+        )
+        secondInstruction.setOpacity(0.0, at: .zero) // 두 번째 동영상은 시작부터 투명하도록 설정
+        secondInstruction.setOpacity(1.0, at: asset1.duration) // 첫 번째 동영상이 끝난 시점부터 두 번째 동영상이 나오도록 설정
+        
+        
+        
+        // 지시 사항 추가
+        mainVideoInstruction.layerInstructions = [firstInstruction, secondInstruction]
+        let mainComposition = AVMutableVideoComposition()
+        mainComposition.instructions = [mainVideoInstruction]
+        mainComposition.renderSize = UIScreen.main.bounds.size
+        mainComposition.frameDuration = CMTimeMake(value: 1, timescale: 30)
+        
+        // 플레이어 아이템 생성
+        let playerItem = AVPlayerItem(asset: composition)
+        playerItem.videoComposition = mainComposition
+        // 플레이어 생성
+        let player = AVPlayer(playerItem: playerItem)
+        
         
         presenter?.presentVideoPlayer(with: player) // 비디오 플레이어 프레젠트
     }
@@ -217,5 +231,78 @@ class VDRouter: VideoRouter {
         router.entry = view as? VideoPoint
         
         return router
+    }
+}
+
+//MARK: - 동영상 비율 맞추기
+extension VideoEditingInteractorImpl {
+    func orientationFromTransform(_ transform: CGAffineTransform) -> (orientation: UIImage.Orientation, isPortrait: Bool) {
+        var assetOrientation = UIImage.Orientation.up
+        var isPortrait = false
+        let tfA = transform.a
+        let tfB = transform.b
+        let tfC = transform.c
+        let tfD = transform.d
+        
+        if tfA == 0 && tfB == 1.0 && tfC == -1.0 && tfD == 0 {
+            assetOrientation = .right
+            isPortrait = true
+        } else if tfA == 0 && tfB == -1.0 && tfC == 1.0 && tfD == 0 {
+            assetOrientation = .left
+            isPortrait = true
+        } else if tfA == 1.0 && tfB == 0 && tfC == 0 && tfD == 1.0 {
+            assetOrientation = .up
+        } else if tfA == -1.0 && tfB == 0 && tfC == 0 && tfD == -1.0 {
+            assetOrientation = .down
+        }
+        return (assetOrientation, isPortrait)
+    }
+    
+    func videoCompositionInstruction(_ track: AVCompositionTrack, asset: AVAsset) -> AVMutableVideoCompositionLayerInstruction {
+        // 1
+        let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
+        
+        // 2
+        let assetTrack = asset.tracks(withMediaType: AVMediaType.video)[0]
+        
+        // 3
+        let transform = assetTrack.preferredTransform
+        let assetInfo = orientationFromTransform(transform)
+        
+        var scaleToFitRatio = UIScreen.main.bounds.width / assetTrack.naturalSize.width
+        if assetInfo.isPortrait {
+            // 4
+            scaleToFitRatio = UIScreen.main.bounds.width / assetTrack.naturalSize.height
+            let scaleFactor = CGAffineTransform(
+                scaleX: scaleToFitRatio,
+                y: scaleToFitRatio)
+            instruction.setTransform(
+                assetTrack.preferredTransform.concatenating(scaleFactor),
+                at: .zero)
+        } else {
+            //
+            let scaleFactor = CGAffineTransform(
+                scaleX: scaleToFitRatio,
+                y: scaleToFitRatio)
+            
+            let assetHalfHeight = assetTrack.naturalSize.height * UIScreen.main.bounds.size.width / assetTrack.naturalSize.width / 2
+            
+            var concat = assetTrack.preferredTransform.concatenating(scaleFactor)
+                .concatenating(CGAffineTransform(
+                    translationX: 0,
+                    y: assetTrack.naturalSize.width >= assetTrack.naturalSize.height ? (UIScreen.main.bounds.height / 2) - assetHalfHeight : 0))
+            if assetInfo.orientation == .down {
+                let fixUpsideDown = CGAffineTransform(rotationAngle: CGFloat(Double.pi))
+                let windowBounds = UIScreen.main.bounds
+                let yFix = assetTrack.naturalSize.height + windowBounds.height
+                let centerFix = CGAffineTransform(
+                    translationX: assetTrack.naturalSize.width,
+                    y: yFix)
+                concat = fixUpsideDown.concatenating(centerFix).concatenating(scaleFactor)
+            }
+            instruction.setTransform(concat, at: .zero)
+        }
+        
+        return instruction
     }
 }
